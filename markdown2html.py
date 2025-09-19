@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-Script that converts a Markdown file to HTML (only headings # through ######).
+Script that converts a Markdown file to HTML (supports headings # to ###### and unordered lists).
 
 Usage: ./markdown2html.py <input_markdown> <output_html>
 """
@@ -9,20 +9,46 @@ import os
 import sys
 
 
-def parse_markdown_line(line):
+def parse_markdown(lines):
     """
-    Convert a Markdown heading line into an HTML heading.
+    Convert a list of Markdown lines to HTML lines.
 
-    Supports only # to ###### at the start of the line.
+    Supports:
+    - Headings: # to ######
+    - Unordered lists: lines starting with '- '
     """
-    line = line.rstrip()
-    if line.startswith('#'):
-        i = 0
-        while i < len(line) and line[i] == '#':
-            i += 1
-        if 1 <= i <= 6 and line[i] == ' ':
-            return f"<h{i}>{line[i+1:].strip()}</h{i}>"
-    return None
+    html_lines = []
+    in_list = False
+
+    for line in lines:
+        line = line.rstrip()
+
+        if line.startswith('#'):
+            i = 0
+            while i < len(line) and line[i] == '#':
+                i += 1
+            if 1 <= i <= 6 and line[i] == ' ':
+                if in_list:
+                    html_lines.append("</ul>")
+                    in_list = False
+                html_lines.append(f"<h{i}>{line[i+1:].strip()}</h{i}>")
+                continue
+
+        if line.startswith('- '):
+            if not in_list:
+                html_lines.append("<ul>")
+                in_list = True
+            html_lines.append(f"<li>{line[2:].strip()}</li>")
+            continue
+
+        if in_list:
+            html_lines.append("</ul>")
+            in_list = False
+
+    if in_list:
+        html_lines.append("</ul>")
+
+    return html_lines
 
 
 def main():
@@ -38,12 +64,10 @@ def main():
         print(f"Missing {input_file}", file=sys.stderr)
         sys.exit(1)
 
-    html_lines = []
     with open(input_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            html_line = parse_markdown_line(line)
-            if html_line:
-                html_lines.append(html_line)
+        markdown_lines = f.readlines()
+
+    html_lines = parse_markdown(markdown_lines)
 
     with open(output_file, 'w', encoding='utf-8') as f:
         for line in html_lines:
