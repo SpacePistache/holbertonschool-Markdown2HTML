@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-Script that converts a Markdown file to HTML (supports headings # to ###### and unordered lists).
+Script that converts a Markdown file to HTML (supports headings, unordered lists, and ordered lists).
 
 Usage: ./markdown2html.py <input_markdown> <output_html>
 """
@@ -16,9 +16,11 @@ def parse_markdown(lines):
     Supports:
     - Headings: # to ######
     - Unordered lists: lines starting with '- '
+    - Ordered lists: lines starting with '* '
     """
     html_lines = []
-    in_list = False
+    in_ul = False
+    in_ol = False
 
     for line in lines:
         line = line.rstrip()
@@ -28,25 +30,46 @@ def parse_markdown(lines):
             while i < len(line) and line[i] == '#':
                 i += 1
             if 1 <= i <= 6 and line[i] == ' ':
-                if in_list:
+                if in_ul:
                     html_lines.append("</ul>")
-                    in_list = False
+                    in_ul = False
+                if in_ol:
+                    html_lines.append("</ol>")
+                    in_ol = False
                 html_lines.append(f"<h{i}>{line[i+1:].strip()}</h{i}>")
                 continue
 
         if line.startswith('- '):
-            if not in_list:
+            if in_ol:
+                html_lines.append("</ol>")
+                in_ol = False
+            if not in_ul:
                 html_lines.append("<ul>")
-                in_list = True
+                in_ul = True
             html_lines.append(f"<li>{line[2:].strip()}</li>")
             continue
 
-        if in_list:
-            html_lines.append("</ul>")
-            in_list = False
+        if line.startswith('* '):
+            if in_ul:
+                html_lines.append("</ul>")
+                in_ul = False
+            if not in_ol:
+                html_lines.append("<ol>")
+                in_ol = True
+            html_lines.append(f"<li>{line[2:].strip()}</li>")
+            continue
 
-    if in_list:
+        if in_ul:
+            html_lines.append("</ul>")
+            in_ul = False
+        if in_ol:
+            html_lines.append("</ol>")
+            in_ol = False
+
+    if in_ul:
         html_lines.append("</ul>")
+    if in_ol:
+        html_lines.append("</ol>")
 
     return html_lines
 
