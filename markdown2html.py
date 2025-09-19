@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """
-Script that converts a Markdown file to HTML (supports headings, unordered lists, ordered lists, paragraphs, bold, and italics).
+Script that converts a Markdown file to HTML (supports headings, unordered/ordered lists,
+paragraphs, bold, italics, MD5 [[text]], and remove c ((text))).
 
 Usage: ./markdown2html.py <input_markdown> <output_html>
 """
@@ -8,17 +9,29 @@ Usage: ./markdown2html.py <input_markdown> <output_html>
 import os
 import sys
 import re
+import hashlib
 
 
 def parse_formatting(text):
     """
-    Convert bold and italics Markdown to HTML.
-
-    - **text** → <b>text</b>
-    - __text__ → <em>text</em>
+    Convert Markdown formatting and custom syntaxes to HTML:
+    - **text** -> <b>text</b>
+    - __text__ -> <em>text</em>
+    - [[text]] -> MD5 hash (lowercase)
+    - ((text)) -> remove all 'c' or 'C'
     """
     text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
     text = re.sub(r"__(.+?)__", r"<em>\1</em>", text)
+
+    def remove_c(match):
+        return match.group(1).replace('c', '').replace('C', '')
+    text = re.sub(r"\(\((.+?)\)\)", remove_c, text)
+
+    def md5_hash(match):
+        s = match.group(1)
+        return hashlib.md5(s.encode()).hexdigest()
+    text = re.sub(r"\[\[(.+?)\]\]", md5_hash, text)
+
     return text
 
 
@@ -33,6 +46,8 @@ def parse_markdown(lines):
     - Paragraphs: consecutive non-empty lines separated by empty lines
     - Bold: **text**
     - Italics: __text__
+    - [[text]]: MD5 hash
+    - ((text)): remove all 'c' or 'C'
     """
     html_lines = []
     in_ul = False
