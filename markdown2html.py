@@ -5,7 +5,7 @@
 import os
 import sys
 
-def two_string():
+def main():
 	"""Function checking arguments and file existence"""
 	if len(sys.argv) != 3:
 		print("Usage: ./markdown2html.py README.md README.html", file=sys.stderr)
@@ -21,4 +21,4 @@ def two_string():
 	sys.exit(0)
 
 if __name__ == "__main__":
-	two_string()
+	main()
