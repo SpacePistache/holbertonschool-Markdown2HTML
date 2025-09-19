@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-Script that converts a Markdown file to HTML (supports headings, unordered lists, and ordered lists).
+Script that converts a Markdown file to HTML (supports headings, unordered lists, ordered lists, and paragraphs).
 
 Usage: ./markdown2html.py <input_markdown> <output_html>
 """
@@ -17,15 +17,37 @@ def parse_markdown(lines):
     - Headings: # to ######
     - Unordered lists: lines starting with '- '
     - Ordered lists: lines starting with '* '
+    - Paragraphs: consecutive non-empty lines separated by empty lines
     """
     html_lines = []
     in_ul = False
     in_ol = False
+    paragraph_lines = []
+
+    def flush_paragraph():
+        """Convert collected paragraph lines to HTML and clear the buffer."""
+        if paragraph_lines:
+            html_lines.append("<p>")
+            for i, pline in enumerate(paragraph_lines):
+                html_lines.append(pline if i == 0 else f"<br/>{pline}")
+            html_lines.append("</p>")
+            paragraph_lines.clear()
 
     for line in lines:
         line = line.rstrip()
 
+        if not line.strip():
+            flush_paragraph()
+            if in_ul:
+                html_lines.append("</ul>")
+                in_ul = False
+            if in_ol:
+                html_lines.append("</ol>")
+                in_ol = False
+            continue
+
         if line.startswith('#'):
+            flush_paragraph()
             i = 0
             while i < len(line) and line[i] == '#':
                 i += 1
@@ -40,6 +62,7 @@ def parse_markdown(lines):
                 continue
 
         if line.startswith('- '):
+            flush_paragraph()
             if in_ol:
                 html_lines.append("</ol>")
                 in_ol = False
@@ -50,6 +73,7 @@ def parse_markdown(lines):
             continue
 
         if line.startswith('* '):
+            flush_paragraph()
             if in_ul:
                 html_lines.append("</ul>")
                 in_ul = False
@@ -59,12 +83,10 @@ def parse_markdown(lines):
             html_lines.append(f"<li>{line[2:].strip()}</li>")
             continue
 
-        if in_ul:
-            html_lines.append("</ul>")
-            in_ul = False
-        if in_ol:
-            html_lines.append("</ol>")
-            in_ol = False
+        flush_paragraph() if False else None
+        paragraph_lines.append(line)
+
+    flush_paragraph()
 
     if in_ul:
         html_lines.append("</ul>")
