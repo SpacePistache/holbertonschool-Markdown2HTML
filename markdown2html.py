@@ -1,12 +1,25 @@
 #!/usr/bin/python3
 """
-Script that converts a Markdown file to HTML (supports headings, unordered lists, ordered lists, and paragraphs).
+Script that converts a Markdown file to HTML (supports headings, unordered lists, ordered lists, paragraphs, bold, and italics).
 
 Usage: ./markdown2html.py <input_markdown> <output_html>
 """
 
 import os
 import sys
+import re
+
+
+def parse_formatting(text):
+    """
+    Convert bold and italics Markdown to HTML.
+
+    - **text** → <b>text</b>
+    - __text__ → <em>text</em>
+    """
+    text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
+    text = re.sub(r"__(.+?)__", r"<em>\1</em>", text)
+    return text
 
 
 def parse_markdown(lines):
@@ -18,6 +31,8 @@ def parse_markdown(lines):
     - Unordered lists: lines starting with '- '
     - Ordered lists: lines starting with '* '
     - Paragraphs: consecutive non-empty lines separated by empty lines
+    - Bold: **text**
+    - Italics: __text__
     """
     html_lines = []
     in_ul = False
@@ -29,6 +44,7 @@ def parse_markdown(lines):
         if paragraph_lines:
             html_lines.append("<p>")
             for i, pline in enumerate(paragraph_lines):
+                pline = parse_formatting(pline)
                 html_lines.append(pline if i == 0 else f"<br/>{pline}")
             html_lines.append("</p>")
             paragraph_lines.clear()
@@ -58,7 +74,7 @@ def parse_markdown(lines):
                 if in_ol:
                     html_lines.append("</ol>")
                     in_ol = False
-                html_lines.append(f"<h{i}>{line[i+1:].strip()}</h{i}>")
+                html_lines.append(f"<h{i}>{parse_formatting(line[i+1:].strip())}</h{i}>")
                 continue
 
         if line.startswith('- '):
@@ -69,7 +85,7 @@ def parse_markdown(lines):
             if not in_ul:
                 html_lines.append("<ul>")
                 in_ul = True
-            html_lines.append(f"<li>{line[2:].strip()}</li>")
+            html_lines.append(f"<li>{parse_formatting(line[2:].strip())}</li>")
             continue
 
         if line.startswith('* '):
@@ -80,10 +96,9 @@ def parse_markdown(lines):
             if not in_ol:
                 html_lines.append("<ol>")
                 in_ol = True
-            html_lines.append(f"<li>{line[2:].strip()}</li>")
+            html_lines.append(f"<li>{parse_formatting(line[2:].strip())}</li>")
             continue
 
-        flush_paragraph() if False else None
         paragraph_lines.append(line)
 
     flush_paragraph()
